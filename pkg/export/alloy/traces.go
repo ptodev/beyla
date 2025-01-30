@@ -13,6 +13,8 @@ import (
 	"github.com/grafana/beyla/pkg/internal/request"
 )
 
+//TODO: Also export logs to Alloy.
+
 // TracesReceiver creates a terminal node that consumes request.Spans and sends OpenTelemetry traces to the configured consumers.
 func TracesReceiver(
 	ctx context.Context,

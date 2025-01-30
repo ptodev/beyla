@@ -3,6 +3,7 @@ package otel
 import (
 	"context"
 
+	// sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -42,3 +43,17 @@ func (ie *instrumentedTracesExporter) ExportSpans(ctx context.Context, ss []trac
 	ie.internal.OTELTraceExport(len(ss))
 	return nil
 }
+
+// type instrumentedLogsExporter struct {
+// 	sdklog.Exporter
+// 	internal imetrics.Reporter
+// }
+
+// func (ie *instrumentedLogsExporter) ExportLogs(ctx context.Context, lr []sdklog.Record) error {
+// 	if err := ie.Exporter.Export(ctx, lr); err != nil {
+// 		ie.internal.OTELLogExportError(err)
+// 		return err
+// 	}
+// 	ie.internal.OTELLogExport(len(lr))
+// 	return nil
+// }

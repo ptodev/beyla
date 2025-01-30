@@ -38,9 +38,10 @@ type nodesMap struct {
 	AlloyTraces pipe.Final[[]request.Span]
 	Metrics     pipe.Final[[]request.Span]
 	Traces      pipe.Final[[]request.Span]
-	Prometheus  pipe.Final[[]request.Span]
-	BpfMetrics  pipe.Final[[]request.Span]
-	Printer     pipe.Final[[]request.Span]
+	//TODO: Add logs?
+	Prometheus pipe.Final[[]request.Span]
+	BpfMetrics pipe.Final[[]request.Span]
+	Printer    pipe.Final[[]request.Span]
 
 	ProcessReport pipe.Final[[]request.Span]
 }

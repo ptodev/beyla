@@ -44,6 +44,8 @@ type Reporter interface {
 	OTELTraceExport(i int)
 	// OTELTraceExportError is invoked every time the OpenTelemetry Traces export fails with an error
 	OTELTraceExportError(err error)
+	// OTELLogExport(len int)
+	// OTELLogExportError(err error)
 	// PrometheusRequest is invoked every time the Prometheus exporter is invoked, for a given port and path
 	PrometheusRequest(port, path string)
 	// InstrumentProcess is invoked every time a new process is instrumented
@@ -61,6 +63,9 @@ func (n NoopReporter) OTELMetricExport(_ int)        {}
 func (n NoopReporter) OTELMetricExportError(_ error) {}
 func (n NoopReporter) OTELTraceExport(_ int)         {}
 func (n NoopReporter) OTELTraceExportError(_ error)  {}
+
+// func (n NoopReporter) OTELLogExport(_ int)           {}
+// func (n NoopReporter) OTELLogExportError(_ error)    {}
 func (n NoopReporter) PrometheusRequest(_, _ string) {}
 func (n NoopReporter) InstrumentProcess(_ string)    {}
 func (n NoopReporter) UninstrumentProcess(_ string)  {}
