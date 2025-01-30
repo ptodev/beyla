@@ -60,9 +60,9 @@ type bpf_tpProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpf_tpMapSpecs struct {
-	ActiveCapableArgs *ebpf.MapSpec `ebpf:"active_capable_args"`
-	PidCache          *ebpf.MapSpec `ebpf:"pid_cache"`
-	ValidPids         *ebpf.MapSpec `ebpf:"valid_pids"`
+	CapabilityEvents *ebpf.MapSpec `ebpf:"capability_events"`
+	PidCache         *ebpf.MapSpec `ebpf:"pid_cache"`
+	ValidPids        *ebpf.MapSpec `ebpf:"valid_pids"`
 }
 
 // bpf_tpObjects contains all objects after they have been loaded into the kernel.
@@ -84,14 +84,14 @@ func (o *bpf_tpObjects) Close() error {
 //
 // It can be passed to loadBpf_tpObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpf_tpMaps struct {
-	ActiveCapableArgs *ebpf.Map `ebpf:"active_capable_args"`
-	PidCache          *ebpf.Map `ebpf:"pid_cache"`
-	ValidPids         *ebpf.Map `ebpf:"valid_pids"`
+	CapabilityEvents *ebpf.Map `ebpf:"capability_events"`
+	PidCache         *ebpf.Map `ebpf:"pid_cache"`
+	ValidPids        *ebpf.Map `ebpf:"valid_pids"`
 }
 
 func (m *bpf_tpMaps) Close() error {
 	return _Bpf_tpClose(
-		m.ActiveCapableArgs,
+		m.CapabilityEvents,
 		m.PidCache,
 		m.ValidPids,
 	)
