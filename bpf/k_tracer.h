@@ -102,19 +102,6 @@ int BPF_KPROBE(beyla_kprobe_tcp_rcv_established, struct sock *sk, struct sk_buff
     return 0;
 }
 
-SEC("kprobe/capable")
-int BPF_KPROBE(beyla_kprobe_capable, int cap) {
-    u64 id = bpf_get_current_pid_tgid();
-
-    if (!valid_pid(id)) {
-        return 0;
-    }
-
-    bpf_dbg_printk("=== capable id=%d ===", id);
-
-    return 0;
-}
-
 // We tap into both sys_accept and sys_accept4.
 // We don't care about the accept entry arguments, since we get only peer information
 // we don't have the full picture for the socket.
