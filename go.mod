@@ -49,21 +49,21 @@ require (
 	go.opentelemetry.io/contrib/detectors/aws/eks v1.28.0
 	go.opentelemetry.io/contrib/detectors/azure/azurevm v0.0.1
 	go.opentelemetry.io/contrib/detectors/gcp v1.28.0
-	go.opentelemetry.io/otel v1.32.0
+	go.opentelemetry.io/otel v1.34.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.28.0
-	go.opentelemetry.io/otel/metric v1.32.0
-	go.opentelemetry.io/otel/sdk v1.32.0
+	go.opentelemetry.io/otel/metric v1.34.0
+	go.opentelemetry.io/otel/sdk v1.34.0
 	go.opentelemetry.io/otel/sdk/metric v1.32.0
-	go.opentelemetry.io/otel/trace v1.32.0
+	go.opentelemetry.io/otel/trace v1.34.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/arch v0.7.0
 	golang.org/x/mod v0.21.0
 	golang.org/x/net v0.33.0
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.29.0
 	google.golang.org/grpc v1.68.1
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
@@ -73,6 +73,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.15.1
 	sigs.k8s.io/e2e-framework v0.3.0
 )
+
+require go.opentelemetry.io/otel/log v0.10.0 // indirect
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
@@ -134,6 +136,7 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/collector v0.116.0 // indirect
 	go.opentelemetry.io/collector/client v1.22.0 // indirect
 	go.opentelemetry.io/collector/config/configauth v0.116.0 // indirect
@@ -154,6 +157,7 @@ require (
 	go.opentelemetry.io/collector/pipeline/xpipeline v0.116.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
+	go.opentelemetry.io/otel/sdk/log v0.10.0
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
