@@ -1,10 +1,10 @@
 #include "vmlinux.h"
 #include "bpf_helpers.h"
 #include "map_sizing.h"
+#include "bpf_dbg.h"
+#include "pid.h"
+#include "bpf_tracing.h"
 
-// #include "bpf_tracing.h"
-// #include "bpf_dbg.h"
-// #include "pid.h"
 // #include "sockaddr.h"
 // #include "tcp_info.h"
 // #include "k_tracer_defs.h"
