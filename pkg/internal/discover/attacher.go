@@ -119,7 +119,8 @@ func (ta *TraceAttacher) getTracer(ie *ebpf.Instrumentable) bool {
 	ta.Metrics.InstrumentProcess(ie.FileInfo.ExecutableName())
 
 	// builds a tracer for that executable
-	var programs []ebpf.Tracer
+	// TODO: We want to only enable the capability tracer sometimes?
+	var programs = newCapabilityTracersGroup(ta.Cfg, ta.Metrics)
 	tracerType := ebpf.Generic
 	switch ie.Type {
 	case svc.InstrumentableGolang:

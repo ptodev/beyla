@@ -11,15 +11,12 @@ import (
 	"unsafe"
 
 	"github.com/cilium/ebpf"
-	"github.com/gavv/monotime"
-	"github.com/vishvananda/netlink"
 
 	"github.com/grafana/beyla/pkg/beyla"
 	ebpfcommon "github.com/grafana/beyla/pkg/internal/ebpf/common"
 	"github.com/grafana/beyla/pkg/internal/exec"
 	"github.com/grafana/beyla/pkg/internal/goexec"
 	"github.com/grafana/beyla/pkg/internal/imetrics"
-	"github.com/grafana/beyla/pkg/internal/netolly/ifaces"
 	"github.com/grafana/beyla/pkg/internal/request"
 	"github.com/grafana/beyla/pkg/internal/svc"
 )
@@ -33,19 +30,19 @@ var instrumentedLibs = make(ebpfcommon.InstrumentedLibsT)
 var libsMux sync.Mutex
 
 type Tracer struct {
-	pidsFilter     ebpfcommon.ServiceFilter
-	cfg            *beyla.Config
-	metrics        imetrics.Reporter
-	bpfObjects     bpfObjects
-	closers        []io.Closer
-	log            *slog.Logger
-	qdiscs         map[ifaces.Interface]*netlink.GenericQdisc
-	egressFilters  map[ifaces.Interface]*netlink.BpfFilter
-	ingressFilters map[ifaces.Interface]*netlink.BpfFilter
+	pidsFilter ebpfcommon.ServiceFilter
+	cfg        *beyla.Config
+	metrics    imetrics.Reporter
+	bpfObjects bpfObjects
+	closers    []io.Closer
+	log        *slog.Logger
 }
 
 func New(cfg *beyla.Config, metrics imetrics.Reporter) *Tracer {
-	return &Tracer{}
+	return &Tracer{
+		cfg:     cfg,
+		metrics: metrics,
+	}
 }
 
 // Updating these requires updating the constants below in pid.h
@@ -267,11 +264,4 @@ func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 		p.bpfObjects.CapabilityEvents,
 		p.metrics,
 	)(ctx, append(p.closers, &p.bpfObjects), eventsChan)
-}
-
-func kernelTime(ktime uint64) time.Time {
-	now := time.Now()
-	delta := monotime.Now() - time.Duration(int64(ktime))
-
-	return now.Add(-delta)
 }
