@@ -12,8 +12,6 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/gavv/monotime"
-	"github.com/vishvananda/netlink"
-
 	"github.com/grafana/beyla/pkg/beyla"
 	ebpfcommon "github.com/grafana/beyla/pkg/internal/ebpf/common"
 	"github.com/grafana/beyla/pkg/internal/exec"
@@ -22,6 +20,7 @@ import (
 	"github.com/grafana/beyla/pkg/internal/netolly/ifaces"
 	"github.com/grafana/beyla/pkg/internal/request"
 	"github.com/grafana/beyla/pkg/internal/svc"
+	"github.com/vishvananda/netlink"
 )
 
 //go:generate $BPF2GO -cc $BPF_CLANG -cflags $BPF_CFLAGS -target amd64,arm64 bpf ../../../../bpf/capability_tracer.c -- -I../../../../bpf/headers
@@ -128,43 +127,7 @@ func (p *Tracer) Load() (*ebpf.CollectionSpec, error) {
 	return loader()
 }
 
-func (p *Tracer) SetupTailCalls() {
-	for _, tc := range []struct {
-		index int
-		prog  *ebpf.Program
-	}{
-		{
-			index: 0,
-			prog:  p.bpfObjects.BeylaProtocolHttp,
-		},
-		{
-			index: 1,
-			prog:  p.bpfObjects.BeylaProtocolHttp2,
-		},
-		{
-			index: 2,
-			prog:  p.bpfObjects.BeylaProtocolTcp,
-		},
-		{
-			index: 3,
-			prog:  p.bpfObjects.BeylaProtocolHttp2GrpcFrames,
-		},
-		{
-			index: 4,
-			prog:  p.bpfObjects.BeylaProtocolHttp2GrpcHandleStartFrame,
-		},
-		{
-			index: 5,
-			prog:  p.bpfObjects.BeylaProtocolHttp2GrpcHandleEndFrame,
-		},
-	} {
-		err := p.bpfObjects.JumpTable.Update(uint32(tc.index), uint32(tc.prog.FD()), ebpf.UpdateAny)
-
-		if err != nil {
-			p.log.Error("error loading info tail call jump table", "error", err)
-		}
-	}
-}
+func (p *Tracer) SetupTailCalls() {}
 
 func (p *Tracer) Constants() map[string]any {
 	m := make(map[string]any, 2)
@@ -295,14 +258,12 @@ func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 
 	timeoutTicker := time.NewTicker(2 * time.Second)
 
-	go p.watchForMisclassifedEvents()
-	go p.lookForTimeouts(timeoutTicker, eventsChan)
 	defer timeoutTicker.Stop()
 
 	ebpfcommon.SharedRingbuf(
 		&p.cfg.EBPF,
 		p.pidsFilter,
-		p.bpfObjects.Events,
+		p.bpfObjects.capability_events,
 		p.metrics,
 	)(ctx, append(p.closers, &p.bpfObjects), eventsChan)
 }
@@ -312,65 +273,4 @@ func kernelTime(ktime uint64) time.Time {
 	delta := monotime.Now() - time.Duration(int64(ktime))
 
 	return now.Add(-delta)
-}
-
-//nolint:cyclop
-func (p *Tracer) lookForTimeouts(ticker *time.Ticker, eventsChan chan<- []request.Span) {
-	for t := range ticker.C {
-		if p.bpfObjects.OngoingHttp != nil {
-			i := p.bpfObjects.OngoingHttp.Iterate()
-			var k bpfPidConnectionInfoT
-			var v bpfHttpInfoT
-			for i.Next(&k, &v) {
-				// Check if we have a lingering request which we've completed, as in it has EndMonotimeNs
-				// but it hasn't been posted yet, likely missed by the logic that looks at finishing requests
-				// where we track the full response. If we haven't updated the EndMonotimeNs in more than some
-				// short interval, we are likely not going to finish this request from eBPF, so let's do it here.
-				if v.EndMonotimeNs != 0 && t.After(kernelTime(v.EndMonotimeNs).Add(2*time.Second)) {
-					// Must use unsafe here, the two bpfHttpInfoTs are the same but generated from different
-					// ebpf2go outputs
-					s, ignore, err := ebpfcommon.HTTPInfoEventToSpan(*(*ebpfcommon.BPFHTTPInfo)(unsafe.Pointer(&v)))
-					if !ignore && err == nil {
-						eventsChan <- p.pidsFilter.Filter([]request.Span{s})
-					}
-					if err := p.bpfObjects.OngoingHttp.Delete(k); err != nil {
-						p.log.Debug("Error deleting ongoing request", "error", err)
-					}
-				} else if v.EndMonotimeNs == 0 && p.cfg.EBPF.HTTPRequestTimeout.Milliseconds() > 0 && t.After(kernelTime(v.StartMonotimeNs).Add(p.cfg.EBPF.HTTPRequestTimeout)) {
-					// If we don't have a request finish with endTime by the configured request timeout, terminate the
-					// waiting request with a timeout 408
-					s, ignore, err := ebpfcommon.HTTPInfoEventToSpan(*(*ebpfcommon.BPFHTTPInfo)(unsafe.Pointer(&v)))
-
-					if !ignore && err == nil {
-						s.Status = 408 // timeout
-						if s.RequestStart == 0 {
-							s.RequestStart = s.Start
-						}
-						s.End = s.Start + p.cfg.EBPF.HTTPRequestTimeout.Nanoseconds()
-
-						eventsChan <- p.pidsFilter.Filter([]request.Span{s})
-					}
-					if err := p.bpfObjects.OngoingHttp.Delete(k); err != nil {
-						p.log.Debug("Error deleting ongoing request", "error", err)
-					}
-				}
-			}
-		}
-	}
-}
-
-func (p *Tracer) watchForMisclassifedEvents() {
-	for e := range ebpfcommon.MisclassifiedEvents {
-		if e.EventType == ebpfcommon.EventTypeKHTTP2 {
-			if p.bpfObjects.OngoingHttp2Connections != nil {
-				err := p.bpfObjects.OngoingHttp2Connections.Put(
-					&bpfPidConnectionInfoT{Conn: bpfConnectionInfoT(e.TCPInfo.ConnInfo), Pid: e.TCPInfo.Pid.HostPid},
-					uint8(e.TCPInfo.Ssl), // no new connection flag (0x3)
-				)
-				if err != nil {
-					p.log.Debug("error writing HTTP2/gRPC connection info", "error", err)
-				}
-			}
-		}
-	}
 }

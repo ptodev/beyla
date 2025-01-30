@@ -21,7 +21,7 @@ struct {
     __uint(max_entries, MAX_CONCURRENT_REQUESTS);
     __type(key, u64);
     __type(value, int);
-} active_capable_args SEC(".maps");
+} capability_events SEC(".maps");
 
 SEC("kprobe/capable")
 int BPF_KPROBE(beyla_kprobe_capable, int cap) {
@@ -29,7 +29,7 @@ int BPF_KPROBE(beyla_kprobe_capable, int cap) {
 
     //TODO: Log the system time. Can we use bpf_ktime_get_tai_ns?
     // https://docs.ebpf.io/linux/helper-function/bpf_ktime_get_tai_ns/
-    bpf_map_update_elem(&active_capable_args, &id, &cap, BPF_ANY);
+    bpf_map_update_elem(&capability_events, &id, &cap, BPF_ANY);
 
     //TODO: Why are the Alloy processes not considered valid?
     if (!valid_pid(id)) {
