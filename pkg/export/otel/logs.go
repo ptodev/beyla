@@ -5,10 +5,8 @@ import (
 	"fmt"
 
 	"github.com/mariomac/pipes/pipe"
-	sdklog "go.opentelemetry.io/otel/sdk/log"
 
 	"github.com/grafana/beyla/pkg/export/attributes"
-	"github.com/grafana/beyla/pkg/export/instrumentations"
 	instrument "github.com/grafana/beyla/pkg/export/otel/metric/api/metric"
 	"github.com/grafana/beyla/pkg/internal/pipe/global"
 	"github.com/grafana/beyla/pkg/internal/request"
@@ -28,20 +26,24 @@ func (lc *LogsConfig) Enabled() bool {
 // LogsReporter implements the graph node that receives request.Span
 // instances and forwards them as OTEL logs.
 type LogsReporter struct {
-	ctx        context.Context
-	cfg        *LogsConfig
-	hostID     string
-	attributes *attributes.AttrSelector
-	exporter   sdklog.Exporter
-	reporters  ReporterPool[*svc.Attrs, *Logs]
-	is         instrumentations.InstrumentationSelection
+	// ctx        context.Context
+	// cfg        *LogsConfig
+	// hostID     string
+	// attributes *attributes.AttrSelector
+	// exporter   sdklog.Exporter
+	// reporters  ReporterPool[*svc.Attrs, *Logs]
+	// is         instrumentations.InstrumentationSelection
 }
 
 func newLogsReporter(
-	ctx context.Context,
-	ctxInfo *global.ContextInfo,
-	cfg *LogsConfig,
-	userAttribSelection attributes.Selection,
+	// ctx context.Context,
+	// ctxInfo *global.ContextInfo,
+	// cfg *LogsConfig,
+	// userAttribSelection attributes.Selection,
+	_ context.Context,
+	_ *global.ContextInfo,
+	_ *LogsConfig,
+	_ attributes.Selection,
 ) (*LogsReporter, error) {
 	// log := mlog()
 
