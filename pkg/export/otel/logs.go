@@ -69,6 +69,8 @@ func newLogsReporter(
 }
 
 func (mr *LogsReporter) reportLogs(input <-chan []request.Span) {
+	fmt.Println("starting LogsReporter::reportLogs")
+
 	for spans := range input {
 		for i := range spans {
 			s := &spans[i]

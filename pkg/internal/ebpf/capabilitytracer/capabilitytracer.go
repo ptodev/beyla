@@ -3,7 +3,9 @@
 package capabilitytracer
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"io"
 	"log/slog"
 	"sync"
@@ -11,8 +13,10 @@ import (
 	"unsafe"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/ringbuf"
 
 	"github.com/grafana/beyla/pkg/beyla"
+	"github.com/grafana/beyla/pkg/config"
 	ebpfcommon "github.com/grafana/beyla/pkg/internal/ebpf/common"
 	"github.com/grafana/beyla/pkg/internal/exec"
 	"github.com/grafana/beyla/pkg/internal/goexec"
@@ -251,6 +255,19 @@ func (p *Tracer) AlreadyInstrumentedLib(id uint64) bool {
 	return module != nil
 }
 
+func (p *Tracer) reader(_ *config.EBPFTracer, record *ringbuf.Record, _ ebpfcommon.ServiceFilter) (request.Span, bool, error) {
+	var cap int
+
+	err := binary.Read(bytes.NewBuffer(record.RawSample), binary.LittleEndian, &cap)
+
+	if err == nil {
+		p.log.Debug("error with reader: %w", err)
+	}
+
+	return request.Span{}, true, nil
+
+}
+
 func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 	// At this point we now have loaded the bpf objects, which means we should insert any
 	// pids that are allowed into the bpf map
@@ -264,10 +281,18 @@ func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 
 	defer timeoutTicker.Stop()
 
-	ebpfcommon.SharedRingbuf(
+	// ebpfcommon.SharedRingbuf(
+	// 	&p.cfg.EBPF,
+	// 	p.pidsFilter,
+	// 	p.bpfObjects.CapabilityEvents,
+	// 	p.metrics,
+	// )(ctx, append(p.closers, &p.bpfObjects), eventsChan)
+
+	ebpfcommon.ForwardRingbuf(
 		&p.cfg.EBPF,
-		p.pidsFilter,
 		p.bpfObjects.CapabilityEvents,
-		p.metrics,
-	)(ctx, append(p.closers, &p.bpfObjects), eventsChan)
+		p.pidsFilter,
+		p.reader,
+		p.log,
+		p.metrics)
 }
