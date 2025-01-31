@@ -1,4 +1,4 @@
-//Do we need a "go:build linux"? Beyla is Linux-only anyway.
+// Do we need a "go:build linux"? Beyla is Linux-only anyway.
 
 package capabilitytracer
 

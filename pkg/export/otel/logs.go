@@ -73,24 +73,8 @@ func (mr *LogsReporter) reportLogs(input <-chan []request.Span) {
 		for i := range spans {
 			s := &spans[i]
 			fmt.Println("Hello from reportMetrics", s)
-
-			// if s.InternalSignal() {
-			// 	continue
-			// }
-			// // If we are ignoring this span because of route patterns, don't do anything
-			// if s.IgnoreMetrics() {
-			// 	continue
-			// }
-			// reporter, err := mr.reporters.For(&s.Service)
-			// if err != nil {
-			// 	mlog().Error("unexpected error creating OTEL resource. Ignoring metric",
-			// 		"error", err, "service", s.Service)
-			// 	continue
-			// }
-			// reporter.record(s, mr)
 		}
 	}
-	// mr.close()
 }
 
 // Logs is a set of logs associated to a given OTEL MeterProvider.
