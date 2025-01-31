@@ -33,12 +33,14 @@ int BPF_KPROBE(beyla_kprobe_capable, int cap) {
     // https://docs.ebpf.io/linux/helper-function/bpf_ktime_get_tai_ns/
     bpf_map_update_elem(&capability_events, &id, &cap, BPF_ANY);
 
+    bpf_dbg_printk("=== capable (1) id=%d, cap=%d ===", id, cap);
+
     //TODO: Why are the Alloy processes not considered valid?
     if (!valid_pid(id)) {
         return 0;
     }
 
-    bpf_dbg_printk("=== capable id=%d ===", id);
+    bpf_dbg_printk("=== capable (2) id=%d ===", id);
 
     return 0;
 }

@@ -72,7 +72,7 @@ func (mr *LogsReporter) reportLogs(input <-chan []request.Span) {
 	for spans := range input {
 		for i := range spans {
 			s := &spans[i]
-			fmt.Println("Hello from reportMetrics", s)
+			fmt.Println("Hello from LogsReporter::reportLogs", s)
 		}
 	}
 }
@@ -95,9 +95,9 @@ func ReportLogs(
 ) pipe.FinalProvider[[]request.Span] {
 	return func() (pipe.FinalFunc[[]request.Span], error) {
 		fmt.Println("Hello from ReportLogs")
-		if !cfg.Enabled() {
-			return pipe.IgnoreFinal[[]request.Span](), nil
-		}
+		// if !cfg.Enabled() {
+		// 	return pipe.IgnoreFinal[[]request.Span](), nil
+		// }
 
 		mr, err := newLogsReporter(ctx, ctxInfo, cfg, userAttribSelection)
 		if err != nil {
