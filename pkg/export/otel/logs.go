@@ -7,10 +7,8 @@ import (
 	"github.com/mariomac/pipes/pipe"
 
 	"github.com/grafana/beyla/pkg/export/attributes"
-	instrument "github.com/grafana/beyla/pkg/export/otel/metric/api/metric"
 	"github.com/grafana/beyla/pkg/internal/pipe/global"
 	"github.com/grafana/beyla/pkg/internal/request"
-	"github.com/grafana/beyla/pkg/internal/svc"
 )
 
 type LogsConfig struct {
@@ -98,11 +96,11 @@ func (mr *LogsReporter) reportLogs(input <-chan []request.Span) {
 // Logs is a set of logs associated to a given OTEL MeterProvider.
 // There is a Logs instance for each service/process instrumented by Beyla.
 type Logs struct {
-	ctx     context.Context
-	service *svc.Attrs
+	// ctx     context.Context
+	// service *svc.Attrs
 
 	// IMPORTANT! Don't forget to clean each Expirer in cleanupAllLogsInstances method
-	capabilities *Expirer[*request.Span, instrument.Float64Histogram, float64]
+	// capabilities *Expirer[*request.Span, instrument.Float64Histogram, float64]
 }
 
 func ReportLogs(
