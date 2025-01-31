@@ -38,10 +38,10 @@ type nodesMap struct {
 	AlloyTraces pipe.Final[[]request.Span]
 	Metrics     pipe.Final[[]request.Span]
 	Traces      pipe.Final[[]request.Span]
-	//TODO: Add logs?
-	Prometheus pipe.Final[[]request.Span]
-	BpfMetrics pipe.Final[[]request.Span]
-	Printer    pipe.Final[[]request.Span]
+	Logs        pipe.Final[[]request.Span]
+	Prometheus  pipe.Final[[]request.Span]
+	BpfMetrics  pipe.Final[[]request.Span]
+	Printer     pipe.Final[[]request.Span]
 
 	ProcessReport pipe.Final[[]request.Span]
 }
@@ -65,6 +65,7 @@ func nameResolver(n *nodesMap) *pipe.Middle[[]request.Span, []request.Span] { re
 func attrFilter(n *nodesMap) *pipe.Middle[[]request.Span, []request.Span]   { return &n.AttributeFilter }
 func alloyTraces(n *nodesMap) *pipe.Final[[]request.Span]                   { return &n.AlloyTraces }
 func otelMetrics(n *nodesMap) *pipe.Final[[]request.Span]                   { return &n.Metrics }
+func otelLogs(n *nodesMap) *pipe.Final[[]request.Span]                      { return &n.Logs }
 func otelTraces(n *nodesMap) *pipe.Final[[]request.Span]                    { return &n.Traces }
 func printer(n *nodesMap) *pipe.Final[[]request.Span]                       { return &n.Printer }
 func prometheus(n *nodesMap) *pipe.Final[[]request.Span]                    { return &n.Prometheus }
@@ -123,6 +124,8 @@ func newGraphBuilder(ctx context.Context, config *beyla.Config, ctxInfo *global.
 	pipe.AddFinalProvider(gnb, alloyTraces, alloy.TracesReceiver(ctx, gb.ctxInfo, &config.TracesReceiver, config.Attributes.Select))
 
 	pipe.AddFinalProvider(gnb, printer, debug.PrinterNode(config.TracePrinter))
+
+	pipe.AddFinalProvider(gnb, otelLogs, otel.ReportLogs(ctx, gb.ctxInfo, &config.Logs, config.Attributes.Select))
 
 	// process subpipeline will start another pipeline only to collect and export data
 	// about the processes of an instrumented application

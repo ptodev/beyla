@@ -89,7 +89,7 @@ var DefaultConfig = Config{
 		},
 	},
 	//TODO: Fill this in later
-	// Logs: otel.LogsConfig{},
+	Logs: otel.LogsConfig{},
 	Prometheus: prom.PrometheusConfig{
 		Path:     "/metrics",
 		Buckets:  otel.DefaultBuckets,
@@ -159,9 +159,9 @@ type Config struct {
 	NameResolver *transform.NameResolverConfig `yaml:"name_resolver"`
 	Metrics      otel.MetricsConfig            `yaml:"otel_metrics_export"`
 	Traces       otel.TracesConfig             `yaml:"otel_traces_export"`
-	// Logs         otel.LogsConfig               `yaml:"otel_logs_export"`
-	Prometheus   prom.PrometheusConfig `yaml:"prometheus_export"`
-	TracePrinter debug.TracePrinter    `yaml:"trace_printer" env:"BEYLA_TRACE_PRINTER"`
+	Logs         otel.LogsConfig               `yaml:"otel_logs_export"`
+	Prometheus   prom.PrometheusConfig         `yaml:"prometheus_export"`
+	TracePrinter debug.TracePrinter            `yaml:"trace_printer" env:"BEYLA_TRACE_PRINTER"`
 
 	// Exec allows selecting the instrumented executable whose complete path contains the Exec value.
 	Exec       services.RegexpAttr `yaml:"executable_name" env:"BEYLA_EXECUTABLE_NAME"`

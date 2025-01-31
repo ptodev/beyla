@@ -63,9 +63,8 @@ func (n NoopReporter) OTELMetricExport(_ int)        {}
 func (n NoopReporter) OTELMetricExportError(_ error) {}
 func (n NoopReporter) OTELTraceExport(_ int)         {}
 func (n NoopReporter) OTELTraceExportError(_ error)  {}
-
-// func (n NoopReporter) OTELLogExport(_ int)           {}
-// func (n NoopReporter) OTELLogExportError(_ error)    {}
+func (n NoopReporter) OTELLogExport(_ int)           {}
+func (n NoopReporter) OTELLogExportError(_ error)    {}
 func (n NoopReporter) PrometheusRequest(_, _ string) {}
 func (n NoopReporter) InstrumentProcess(_ string)    {}
 func (n NoopReporter) UninstrumentProcess(_ string)  {}
