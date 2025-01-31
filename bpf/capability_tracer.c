@@ -5,6 +5,8 @@
 #include "pid.h"
 #include "bpf_tracing.h"
 
+#include "k_send_receive.h"
+
 // #include "sockaddr.h"
 // #include "tcp_info.h"
 // #include "k_tracer_defs.h"
