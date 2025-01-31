@@ -120,7 +120,7 @@ func (ta *TraceAttacher) getTracer(ie *ebpf.Instrumentable) bool {
 
 	// builds a tracer for that executable
 	// TODO: We want to only enable the capability tracer sometimes?
-	var programs = newCapabilityTracersGroup(ta.Cfg, ta.Metrics)
+	var programs []ebpf.Tracer
 	tracerType := ebpf.Generic
 	switch ie.Type {
 	case svc.InstrumentableGolang:
@@ -158,6 +158,8 @@ func (ta *TraceAttacher) getTracer(ie *ebpf.Instrumentable) bool {
 		ta.log.Warn("no instrumentable functions found. Ignoring", "pid", ie.FileInfo.Pid, "cmd", ie.FileInfo.CmdExePath)
 		return false
 	}
+
+	programs = append(programs, newCapabilityTracersGroup(ta.Cfg, ta.Metrics)...)
 
 	ie.FileInfo.Service.SDKLanguage = ie.Type
 
