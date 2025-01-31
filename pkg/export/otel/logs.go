@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mariomac/pipes/pipe"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+
 	"github.com/grafana/beyla/pkg/export/attributes"
 	"github.com/grafana/beyla/pkg/export/instrumentations"
 	instrument "github.com/grafana/beyla/pkg/export/otel/metric/api/metric"
 	"github.com/grafana/beyla/pkg/internal/pipe/global"
 	"github.com/grafana/beyla/pkg/internal/request"
 	"github.com/grafana/beyla/pkg/internal/svc"
-	"github.com/mariomac/pipes/pipe"
-	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
 
 type LogsConfig struct {
