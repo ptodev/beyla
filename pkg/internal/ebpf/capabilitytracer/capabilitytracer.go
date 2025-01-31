@@ -264,6 +264,8 @@ func (p *Tracer) reader(_ *config.EBPFTracer, record *ringbuf.Record, _ ebpfcomm
 		p.log.Debug("error with reader: %w", err)
 	}
 
+	p.log.Debug("capabilitytracer::reader: something accessed " + string(cap))
+
 	return request.Span{}, true, nil
 
 }
