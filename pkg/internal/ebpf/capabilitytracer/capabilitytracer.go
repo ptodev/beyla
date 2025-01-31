@@ -38,10 +38,16 @@ type Tracer struct {
 	log        *slog.Logger
 }
 
+func tlog() *slog.Logger {
+	return slog.With("component", "capability.Tracer")
+}
+
 func New(cfg *beyla.Config, metrics imetrics.Reporter) *Tracer {
 	return &Tracer{
-		cfg:     cfg,
-		metrics: metrics,
+		log:        tlog(),
+		cfg:        cfg,
+		metrics:    metrics,
+		pidsFilter: ebpfcommon.CommonPIDsFilter(&cfg.Discovery),
 	}
 }
 
