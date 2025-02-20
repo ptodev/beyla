@@ -190,6 +190,7 @@ type MetricsReporter struct {
 	attrHTTPClientRequestSize []attributes.Field[*request.Span, attribute.KeyValue]
 	attrGPUKernelCalls        []attributes.Field[*request.Span, attribute.KeyValue]
 	attrGPUMemoryAllocations  []attributes.Field[*request.Span, attribute.KeyValue]
+	attrCapabilities          []attributes.Field[*request.Span, attribute.KeyValue]
 }
 
 // Metrics is a set of metrics associated to a given OTEL MeterProvider.
@@ -220,6 +221,7 @@ type Metrics struct {
 	tracesTargetInfo      instrument.Int64UpDownCounter
 	gpuKernelCallsTotal   *Expirer[*request.Span, instrument.Int64Counter, int64]
 	gpuMemoryAllocsTotal  *Expirer[*request.Span, instrument.Int64Counter, int64]
+	capabilitiesTotal     *Expirer[*request.Span, instrument.Int64Counter, int64]
 }
 
 func ReportMetrics(
@@ -300,6 +302,10 @@ func newMetricsReporter(
 		mr.attrGPUMemoryAllocations = attributes.OpenTelemetryGetters(
 			request.SpanOTELGetters, mr.attributes.For(attributes.GPUMemoryAllocations))
 	}
+
+	fmt.Println("Creating the capability metrics")
+	mr.attrCapabilities = attributes.OpenTelemetryGetters(
+		request.SpanOTELGetters, mr.attributes.For(attributes.CapabilityRequests))
 
 	mr.reporters = NewReporterPool[*svc.Attrs, *Metrics](cfg.ReportersCacheLen, cfg.TTL, timeNow,
 		func(id svc.UID, v *expirable[*Metrics]) {
@@ -484,6 +490,14 @@ func (mr *MetricsReporter) setupOtelMeters(m *Metrics, meter instrument.Meter) e
 		m.gpuMemoryAllocsTotal = NewExpirer[*request.Span, instrument.Int64Counter, int64](
 			m.ctx, gpuMemoryAllocationsTotal, mr.attrGPUMemoryAllocations, timeNow, mr.cfg.TTL)
 	}
+
+	fmt.Println("Setting up the capability metrics")
+	capabilitiesTotal, err := meter.Int64Counter(attributes.CapabilityRequests.OTEL)
+	if err != nil {
+		return fmt.Errorf("creating capabilities total: %w", err)
+	}
+	m.capabilitiesTotal = NewExpirer[*request.Span, instrument.Int64Counter, int64](
+		m.ctx, capabilitiesTotal, mr.attrCapabilities, timeNow, mr.cfg.TTL)
 
 	return nil
 }
@@ -851,9 +865,15 @@ func (r *Metrics) record(span *request.Span, mr *MetricsReporter) {
 				gmem, attrs := r.gpuMemoryAllocsTotal.ForRecord(span)
 				gmem.Add(r.ctx, span.ContentLength, instrument.WithAttributeSet(attrs))
 			}
+		case request.EventTypeCapability:
+			fmt.Println("Recording the capability metrics")
+			ct, attrs := r.capabilitiesTotal.ForRecord(span)
+			capAttrs := attribute.String("capability", fmt.Sprint(span.ContentLength))
+			ct.Add(r.ctx, 1, instrument.WithAttributeSet(attrs), instrument.WithAttributes(capAttrs))
 		}
 	}
 
+	//TODO: Exclude capcbility spans from spanmetrics?
 	if mr.cfg.SpanMetricsEnabled() {
 		sml, attrs := r.spanMetricsLatency.ForRecord(span)
 		sml.Record(r.ctx, duration, instrument.WithAttributeSet(attrs))
@@ -865,6 +885,7 @@ func (r *Metrics) record(span *request.Span, mr *MetricsReporter) {
 		smst.Add(r.ctx, float64(span.RequestLength()), instrument.WithAttributeSet(attrs))
 	}
 
+	//TODO: Exclude capcbility spans from servicegraphs?
 	if mr.cfg.ServiceGraphMetricsEnabled() {
 		if !span.IsSelfReferenceSpan() || mr.cfg.AllowServiceGraphSelfReferences {
 			if span.IsClientSpan() {
