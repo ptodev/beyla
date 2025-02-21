@@ -30,6 +30,7 @@ int BPF_KPROBE(beyla_kprobe_capable, int cap) {
     int *trace = bpf_ringbuf_reserve(&capability_events, sizeof(int), 0);
     if (trace) {
         *trace = cap;
+        bpf_dbg_printk("=== capable (1) updating ring buffer ===", id, cap);
         bpf_ringbuf_submit(trace, 0);
     }
 
