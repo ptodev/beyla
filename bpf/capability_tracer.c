@@ -19,19 +19,23 @@ char __license[] SEC("license") = "Dual MIT/GPL";
 
 // Temporary tracking of capabilities
 struct {
-    __uint(type, BPF_MAP_TYPE_LRU_HASH);
-    __uint(max_entries, MAX_CONCURRENT_REQUESTS);
-    __type(key, u64);
-    __type(value, int);
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 12);
 } capability_events SEC(".maps");
 
 SEC("kprobe/capable")
 int BPF_KPROBE(beyla_kprobe_capable, int cap) {
     u64 id = bpf_get_current_pid_tgid();
 
+    int *trace = bpf_ringbuf_reserve(&capability_events, sizeof(int), 0);
+    if (trace) {
+        *trace = cap;
+        bpf_ringbuf_submit(trace, 0);
+    }
+
     //TODO: Log the system time. Can we use bpf_ktime_get_tai_ns?
     // https://docs.ebpf.io/linux/helper-function/bpf_ktime_get_tai_ns/
-    bpf_map_update_elem(&capability_events, &id, &cap, BPF_ANY);
+    // bpf_map_update_elem(&capability_events, &id, &cap, BPF_ANY);
 
     bpf_dbg_printk("=== capable (1) id=%d, cap=%d ===", id, cap);
 
