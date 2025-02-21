@@ -303,7 +303,6 @@ func newMetricsReporter(
 			request.SpanOTELGetters, mr.attributes.For(attributes.GPUMemoryAllocations))
 	}
 
-	fmt.Println("Creating the capability metrics")
 	mr.attrCapabilities = attributes.OpenTelemetryGetters(
 		request.SpanOTELGetters, mr.attributes.For(attributes.CapabilityRequests))
 
@@ -491,13 +490,8 @@ func (mr *MetricsReporter) setupOtelMeters(m *Metrics, meter instrument.Meter) e
 			m.ctx, gpuMemoryAllocationsTotal, mr.attrGPUMemoryAllocations, timeNow, mr.cfg.TTL)
 	}
 
-	fmt.Println("Setting up the capability metrics")
-	capabilitiesTotal, err := meter.Int64Counter(attributes.CapabilityRequests.OTEL)
-	if err != nil {
-		return fmt.Errorf("creating capabilities total: %w", err)
-	}
 	m.capabilitiesTotal = NewExpirer[*request.Span, instrument.Int64Counter, int64](
-		m.ctx, capabilitiesTotal, mr.attrCapabilities, timeNow, mr.cfg.TTL)
+		m.ctx, nil, nil, timeNow, mr.cfg.TTL)
 
 	return nil
 }
@@ -866,7 +860,6 @@ func (r *Metrics) record(span *request.Span, mr *MetricsReporter) {
 				gmem.Add(r.ctx, span.ContentLength, instrument.WithAttributeSet(attrs))
 			}
 		case request.EventTypeCapability:
-			fmt.Println("Recording the capability metrics")
 			ct, attrs := r.capabilitiesTotal.ForRecord(span)
 			capAttrs := attribute.String("capability", fmt.Sprint(span.ContentLength))
 			ct.Add(r.ctx, 1, instrument.WithAttributeSet(attrs), instrument.WithAttributes(capAttrs))

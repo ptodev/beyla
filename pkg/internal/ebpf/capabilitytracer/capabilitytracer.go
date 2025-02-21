@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
@@ -244,14 +245,12 @@ func (p *Tracer) AlreadyInstrumentedLib(id uint64) bool {
 }
 
 func (p *Tracer) reader(_ *config.EBPFTracer, record *ringbuf.Record, _ ebpfcommon.ServiceFilter) (request.Span, bool, error) {
-	p.log.Info("capabilitytracer::reader: start")
-
 	var cap int
 
 	err := binary.Read(bytes.NewBuffer(record.RawSample), binary.LittleEndian, &cap)
 
 	if err == nil {
-		p.log.Info("error with reader: %w", err)
+		p.log.Debug("error with reader: %w", err)
 	}
 
 	p.log.Info("capabilitytracer::reader: something accessed " + string(cap))
@@ -274,11 +273,21 @@ func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 		p.log.Error("BPF Pids map is not created yet, this is a bug.")
 	}
 
+	timeoutTicker := time.NewTicker(2 * time.Second)
+
+	defer timeoutTicker.Stop()
+
+	// ebpfcommon.SharedRingbuf(
+	// 	&p.cfg.EBPF,
+	// 	p.pidsFilter,
+	// 	p.bpfObjects.CapabilityEvents,
+	// 	p.metrics,
+	// )(ctx, append(p.closers, &p.bpfObjects), eventsChan)
+
 	ebpfcommon.ForwardRingbuf(
 		&p.cfg.EBPF,
 		p.bpfObjects.CapabilityEvents,
-		// p.pidsFilter,
-		&ebpfcommon.IdentityPidsFilter{},
+		p.pidsFilter,
 		p.reader,
 		p.log,
 		p.metrics)
