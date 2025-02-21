@@ -246,11 +246,12 @@ func (p *Tracer) AlreadyInstrumentedLib(id uint64) bool {
 
 func (p *Tracer) reader(_ *config.EBPFTracer, record *ringbuf.Record, _ ebpfcommon.ServiceFilter) (request.Span, bool, error) {
 	var cap int
+	p.log.Info("capabilitytracer::reader: starting")
 
 	err := binary.Read(bytes.NewBuffer(record.RawSample), binary.LittleEndian, &cap)
 
 	if err == nil {
-		p.log.Debug("error with reader: %w", err)
+		p.log.Info("error with reader: %w", err)
 	}
 
 	p.log.Info("capabilitytracer::reader: something accessed " + string(cap))
@@ -287,7 +288,8 @@ func (p *Tracer) Run(ctx context.Context, eventsChan chan<- []request.Span) {
 	ebpfcommon.ForwardRingbuf(
 		&p.cfg.EBPF,
 		p.bpfObjects.CapabilityEvents,
-		p.pidsFilter,
+		&ebpfcommon.IdentityPidsFilter{},
+		// p.pidsFilter,
 		p.reader,
 		p.log,
 		p.metrics)
