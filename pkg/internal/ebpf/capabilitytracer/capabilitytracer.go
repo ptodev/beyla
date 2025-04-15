@@ -3,7 +3,9 @@
 package capabilitytracer
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"io"
 	"log/slog"
 
@@ -30,19 +32,80 @@ import (
 type BPFCapabilityInfo bpfCapabilityInfoT
 
 type Tracer struct {
+	pidsFilter ebpfcommon.ServiceFilter
 	cfg        *beyla.Config
 	bpfObjects bpfObjects
 	closers    []io.Closer
 	log        *slog.Logger
+	metrics    imetrics.Reporter
 }
 
 // AddInstrumentedLibRef implements ebpf.Tracer.
 func (p *Tracer) AddInstrumentedLibRef(uint64) {
 }
 
-func (p *Tracer) AllowPID(pid, ns uint32, svc *svc.Attrs) {}
+// Updating these requires updating the constants below in pid.h
+// #define MAX_CONCURRENT_PIDS 3001 // estimate: 1000 concurrent processes (including children) * 3 namespaces per pid
+// #define PRIME_HASH 192053 // closest prime to 3001 * 64
+const (
+	maxConcurrentPids = 3001
+	primeHash         = 192053
+)
 
-func (p *Tracer) BlockPID(pid, ns uint32) {}
+func pidSegmentBit(k uint64) (uint32, uint32) {
+	h := uint32(k % primeHash)
+	segment := h / 64
+	bit := h & 63
+
+	return segment, bit
+}
+
+func (p *Tracer) buildPidFilter() []uint64 {
+	result := make([]uint64, maxConcurrentPids)
+	for nsid, pids := range p.pidsFilter.CurrentPIDs(ebpfcommon.PIDTypeKProbes) {
+		for pid := range pids {
+			// skip any pids that might've been added, but are not tracked by the kprobes
+			p.log.Debug("Reallowing pid", "pid", pid, "namespace", nsid)
+
+			k := uint64((uint64(nsid) << 32) | uint64(pid))
+
+			segment, bit := pidSegmentBit(k)
+
+			v := result[segment]
+			v |= (1 << bit)
+			result[segment] = v
+		}
+	}
+
+	return result
+}
+
+func (p *Tracer) rebuildValidPids() {
+	if p.bpfObjects.ValidPids != nil {
+		v := p.buildPidFilter()
+
+		p.log.Debug("number of segments in pid filter cache", "len", len(v))
+
+		for i, segment := range v {
+			err := p.bpfObjects.ValidPids.Put(uint32(i), uint64(segment))
+			if err != nil {
+				p.log.Error("Error setting up pid in BPF space, sizes of Go and BPF maps don't match", "error", err, "i", i)
+			}
+		}
+	}
+}
+
+func (p *Tracer) AllowPID(pid, ns uint32, svc *svc.Attrs) {
+	p.pidsFilter.AllowPID(pid, ns, svc, ebpfcommon.PIDTypeKProbes)
+	p.rebuildValidPids()
+	p.log.Info("Allowing PID", "pid", pid)
+}
+
+func (p *Tracer) BlockPID(pid, ns uint32) {
+	p.pidsFilter.BlockPID(pid, ns)
+	p.rebuildValidPids()
+	p.log.Info("Blocking PID", "pid", pid)
+}
 
 // AlreadyInstrumentedLib implements ebpf.Tracer.
 func (p *Tracer) AlreadyInstrumentedLib(uint64) bool {
@@ -100,8 +163,10 @@ var _ beyla_ebpf.Tracer = (*Tracer)(nil)
 func New(cfg *beyla.Config, metrics imetrics.Reporter) *Tracer {
 	log := slog.With("component", "capabilitytracer.Tracer")
 	return &Tracer{
-		log: log,
-		cfg: cfg,
+		log:        log,
+		cfg:        cfg,
+		metrics:    metrics,
+		pidsFilter: ebpfcommon.CommonPIDsFilter(&cfg.Discovery),
 	}
 }
 
@@ -144,13 +209,32 @@ func (p *Tracer) Run(ctx context.Context, eventsChan *msg.Queue[[]request.Span])
 		&p.cfg.EBPF,
 		p.bpfObjects.CapabilityEvents,
 		&ebpfcommon.IdentityPidsFilter{},
+		// p.pidsFilter,
 		p.process,
 		p.log,
-		imetrics.NoopReporter{},
+		p.metrics,
 		append(p.closers, &p.bpfObjects)...,
 	)(ctx, eventsChan)
 }
 
 func (p *Tracer) process(_ *config.EBPFTracer, record *ringbuf.Record, _ ebpfcommon.ServiceFilter) (request.Span, bool, error) {
-	return request.Span{}, true, nil
+	var event BPFCapabilityInfo
+
+	p.log.Info("capabilitytracer::process start")
+
+	err := binary.Read(bytes.NewBuffer(record.RawSample), binary.LittleEndian, &event)
+	if err != nil {
+		p.log.Info("capabilitytracer::process failed to parse")
+		return request.Span{}, true, err
+	}
+
+	p.log.Info("capabilitytracer::process parsed capability", "cap", event.Cap)
+
+	return request.Span{
+		Type:          request.EventTypeCapability,
+		ContentLength: int64(event.Cap),
+		Pid: request.PidInfo{
+			HostPID: uint32(event.Pid),
+		},
+	}, false, nil
 }
